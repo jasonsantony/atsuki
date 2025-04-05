@@ -12,7 +12,7 @@ int main() {
 \ \  __ \\/_/\ \/\ \___  \\ \ \_\ \\ \  _"-.\ \ \  
  \ \_\ \_\  \ \_\ \/\_____\\ \_____\\ \_\ \_\\ \_\ 
   \/_/\/_/   \/_/  \/_____/ \/_____/ \/_/\/_/ \/_/ 
-      ASCII  EFFECT  FILTER  FOR  YOUR  VIDEOS     
+      ASCII  EFFECT  FILTER  FOR  YOUR  VIDEOS
   )" << std::endl;
 
   if (!glfwInit) {
