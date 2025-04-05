@@ -1,0 +1,11 @@
+# Ignore all files inside assets/ and output/
+assets/*
+output/*
+
+# But don't ignore the directories themselves
+!assets/
+!output/
+
+# Also, keep any nested directories (but not their files)
+!assets/**/
+!output/**/
