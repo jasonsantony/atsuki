@@ -32,6 +32,9 @@ set(SOURCES
 
 add_executable(atsuki ${SOURCES})
 
+# Enable strict compiler warnings
+target_compile_options(atsuki PRIVATE -Wall -Wextra -Werror)
+
 # Link against libraries
 target_link_libraries(atsuki
     ${GLFW_LIBRARIES}
