@@ -26,8 +26,9 @@ link_directories(
 # Source files
 set(SOURCES
     main.cpp
-    utils/shader_loader.cpp
-    external/glad/src/glad.c
+    render_pass.cpp
+    shader_utils.cpp
+    external/glad/src/gl.c
 )
 
 add_executable(atsuki ${SOURCES})
