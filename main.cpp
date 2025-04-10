@@ -6,10 +6,6 @@
 
 #include <iostream>
 
-// Screen dimensions
-const int SCR_WIDTH = 800;
-const int SCR_HEIGHT = 600;
-
 // Fullscreen quad vertices (position + texcoord)
 float quadVertices[] = {
     // positions   // texcoords
@@ -23,7 +19,6 @@ GLuint createFullscreenQuadVAO() {
   glGenBuffers(1, &VBO);
 
   glBindVertexArray(VAO);
-
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices,
                GL_STATIC_DRAW);
@@ -55,7 +50,6 @@ GLuint loadTextureFromImage(const cv::Mat &image) {
 }
 
 int main(int argc, char **argv) {
-
   std::cout << R"(
     ______   ______  ______   __  __   __  __   __    
    /\  __ \ /\__  _\/\  ___\ /\ \/\ \ /\ \/ /  /\ \   
@@ -66,9 +60,10 @@ int main(int argc, char **argv) {
   )" << std::endl;
 
   if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " <input_image_path>\n" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <input_image_path>\n";
     return 1;
   }
+
   std::string inputPath = std::string(SOURCE_DIR) + "/" + argv[1];
 
   if (!glfwInit()) {
@@ -79,8 +74,9 @@ int main(int argc, char **argv) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+  int initialWidth = 1280, initialHeight = 720;
   GLFWwindow *window =
-      glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "ATSUKI", nullptr, nullptr);
+      glfwCreateWindow(initialWidth, initialHeight, "ATSUKI", nullptr, nullptr);
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -101,15 +97,7 @@ int main(int argc, char **argv) {
     std::cerr << "Failed to load input image" << std::endl;
     return -1;
   }
-  cv::resize(inputImage, inputImage, cv::Size(SCR_WIDTH, SCR_HEIGHT));
   GLuint inputTex = loadTextureFromImage(inputImage);
-
-  // TODO: Create render passes
-  /*
-  RenderPass dogPass;
-  dogPass.init(SCR_WIDTH, SCR_HEIGHT,
-               std::string(SOURCE_DIR) + "/shaders/dog.frag");
-  */
 
   // Display pass (simple passthrough shader)
   ShaderProgram displayShader(
@@ -119,9 +107,28 @@ int main(int argc, char **argv) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    // Final pass: draw input image directly to screen
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+
+    float imageAspect = static_cast<float>(inputImage.cols) / inputImage.rows;
+    float windowAspect = static_cast<float>(windowWidth) / windowHeight;
+
+    int viewWidth = windowWidth;
+    int viewHeight = windowHeight;
+    if (windowAspect > imageAspect) {
+      viewWidth = static_cast<int>(windowHeight * imageAspect);
+      viewHeight = windowHeight;
+    } else {
+      viewWidth = windowWidth;
+      viewHeight = static_cast<int>(windowWidth / imageAspect);
+    }
+
+    int xOffset = (windowWidth - viewWidth) / 2;
+    int yOffset = (windowHeight - viewHeight) / 2;
+
+    // Draw image to screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+    glViewport(xOffset, yOffset, viewWidth, viewHeight);
     glClear(GL_COLOR_BUFFER_BIT);
 
     displayShader.reloadIfChanged();
