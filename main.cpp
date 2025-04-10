@@ -59,12 +59,22 @@ int main(int argc, char **argv) {
          ASCII  EFFECT  FILTER  FOR  YOUR  VIDEOS
   )" << std::endl;
 
-  if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " <input_image_path>\n";
+  if (argc < 3) {
+    std::cerr << "Usage: " << argv[0] << " <input_image_path> <shader_dir>\n";
     return 1;
   }
 
-  std::string inputPath = std::string(SOURCE_DIR) + "/" + argv[1];
+  std::string inputPath = argv[1];
+  std::string shaderDir = argv[2];
+
+  // Load image using OpenCV
+  cv::Mat inputImage = cv::imread(inputPath);
+  if (inputImage.empty()) {
+    std::cerr << "Failed to load input image" << std::endl;
+    return -1;
+  }
+  int renderWidth = inputImage.cols;
+  int renderHeight = inputImage.rows;
 
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -74,15 +84,15 @@ int main(int argc, char **argv) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  int initialWidth = 1280, initialHeight = 720;
   GLFWwindow *window =
-      glfwCreateWindow(initialWidth, initialHeight, "ATSUKI", nullptr, nullptr);
+      glfwCreateWindow(renderWidth, renderHeight, "ATSUKI", nullptr, nullptr);
   if (!window) {
     std::cerr << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     return -1;
   }
   glfwMakeContextCurrent(window);
+  glfwSetWindowAspectRatio(window, renderWidth, renderHeight);
 
   if (!gladLoadGL(glfwGetProcAddress)) {
     std::cerr << "Failed to initialize GLAD" << std::endl;
@@ -90,54 +100,35 @@ int main(int argc, char **argv) {
   }
 
   GLuint quadVAO = createFullscreenQuadVAO();
-
-  // Load image using OpenCV
-  cv::Mat inputImage = cv::imread(inputPath);
-  if (inputImage.empty()) {
-    std::cerr << "Failed to load input image" << std::endl;
-    return -1;
-  }
   GLuint inputTex = loadTextureFromImage(inputImage);
 
+  // Setup Sobel render pass
+  RenderPass sobelPass;
+  sobelPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
+                 shaderDir + "/sobel.frag");
+
   // Display pass (simple passthrough shader)
-  ShaderProgram displayShader(
-      std::string(SOURCE_DIR) + "/shaders/fullscreen_quad.vert",
-      std::string(SOURCE_DIR) + "/shaders/display.frag");
+  ShaderProgram displayShader(shaderDir + "/fullscreen_quad.vert",
+                              shaderDir + "/display.frag");
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    int windowWidth, windowHeight;
-    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+    // Pass 1: Sobel filter
+    sobelPass.run(inputTex, quadVAO);
 
-    float imageAspect = static_cast<float>(inputImage.cols) / inputImage.rows;
-    float windowAspect = static_cast<float>(windowWidth) / windowHeight;
-
-    int viewWidth = windowWidth;
-    int viewHeight = windowHeight;
-    if (windowAspect > imageAspect) {
-      viewWidth = static_cast<int>(windowHeight * imageAspect);
-      viewHeight = windowHeight;
-    } else {
-      viewWidth = windowWidth;
-      viewHeight = static_cast<int>(windowWidth / imageAspect);
-    }
-
-    int xOffset = (windowWidth - viewWidth) / 2;
-    int yOffset = (windowHeight - viewHeight) / 2;
-
-    // Draw image to screen
+    // Final pass: upscale to window
+    int fbWidth, fbHeight;
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(xOffset, yOffset, viewWidth, viewHeight);
+    glViewport(0, 0, fbWidth, fbHeight);
     glClear(GL_COLOR_BUFFER_BIT);
 
     displayShader.reloadIfChanged();
     glUseProgram(displayShader.id);
-
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, inputTex);
+    glBindTexture(GL_TEXTURE_2D, sobelPass.texture);
     glUniform1i(glGetUniformLocation(displayShader.id, "image"), 0);
-
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

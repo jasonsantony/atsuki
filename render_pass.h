@@ -10,7 +10,8 @@ struct RenderPass {
 
   // We use init instead of constructor because of OpenGL obj ownership
   // May need to be created before all OpenGL resources are available
-  void init(int w, int h, const std::string &fragPath);
+  void init(int w, int h, const std::string &vertPath,
+            const std::string &fragPath);
   void run(GLuint inputTex, GLuint vao);
   ~RenderPass(); // Automatically clean up GL resources on destruction
 };

@@ -5,6 +5,11 @@
 
 static std::string readFile(const std::string &path) {
   std::ifstream file(path);
+  std::cout << "Loading shader from: " << path << std::endl;
+  if (!file.is_open()) {
+    std::cerr << "Failed to open shader file: " << path << std::endl;
+    return ""; // <- avoid passing garbage to compiler
+  }
   std::stringstream buffer;
   buffer << file.rdbuf();
   return buffer.str();
@@ -40,6 +45,13 @@ ShaderProgram::ShaderProgram(const std::string &vp, const std::string &fp)
   glAttachShader(this->id, vert);
   glAttachShader(this->id, frag);
   glLinkProgram(this->id);
+  GLint success;
+  glGetProgramiv(this->id, GL_LINK_STATUS, &success);
+  if (!success) {
+    char log[512];
+    glGetProgramInfoLog(this->id, 512, nullptr, log);
+    std::cerr << "Shader program link error:\n" << log << std::endl;
+  }
 
   glDeleteShader(vert);
   glDeleteShader(frag);
@@ -63,6 +75,13 @@ void ShaderProgram::reloadIfChanged() {
     glAttachShader(this->id, vert);
     glAttachShader(this->id, frag);
     glLinkProgram(this->id);
+    GLint success;
+    glGetProgramiv(this->id, GL_LINK_STATUS, &success);
+    if (!success) {
+      char log[512];
+      glGetProgramInfoLog(this->id, 512, nullptr, log);
+      std::cerr << "Shader program reload link error:\n" << log << std::endl;
+    }
 
     glDeleteShader(vert);
     glDeleteShader(frag);

@@ -41,14 +41,13 @@ GLuint createFramebuffer(GLuint tex) {
   return fbo;
 }
 
-void RenderPass::init(int w, int h, const std::string &fragPath) {
+void RenderPass::init(int w, int h, const std::string &vertPath,
+                      const std::string &fragPath) {
   this->width = w;
   this->height = h;
   this->texture = createRenderTexture(w, h);
   this->fbo = createFramebuffer(this->texture);
-  this->shader =
-      std::make_unique<ShaderProgram>("shaders/fullscreen_quad.vert", fragPath);
-  return;
+  this->shader = std::make_unique<ShaderProgram>(vertPath, fragPath);
 }
 
 void RenderPass::run(GLuint inputTex, GLuint vao) {
@@ -58,6 +57,12 @@ void RenderPass::run(GLuint inputTex, GLuint vao) {
   // clear the color (2D) buffer of the currently bound framebuffer
   glClear(GL_COLOR_BUFFER_BIT);
   glUseProgram(this->shader->id);
+
+  // Set texelSize uniform if present in shader
+  GLint texelSizeLoc = glGetUniformLocation(this->shader->id, "texelSize");
+  if (texelSizeLoc != -1) {
+    glUniform2f(texelSizeLoc, 1.0f / this->width, 1.0f / this->height);
+  }
 
   // Bind input texture to texture unit 0
   glActiveTexture(GL_TEXTURE0);           // Select texture unit 0
