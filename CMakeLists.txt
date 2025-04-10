@@ -3,6 +3,8 @@ project(atsuki)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_compile_definitions(SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+
 # Use pkg-config to find installed packages
 find_package(PkgConfig REQUIRED)
 

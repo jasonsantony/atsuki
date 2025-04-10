@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
     std::cerr << "Usage: " << argv[0] << " <input_image_path>\n" << std::endl;
     return 1;
   }
-  std::string inputPath = argv[1];
+  std::string inputPath = std::string(SOURCE_DIR) + "/" + argv[1];
 
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -101,15 +101,18 @@ int main(int argc, char **argv) {
     std::cerr << "Failed to load input image" << std::endl;
     return -1;
   }
+  cv::resize(inputImage, inputImage, cv::Size(SCR_WIDTH, SCR_HEIGHT));
   GLuint inputTex = loadTextureFromImage(inputImage);
 
   // Create render passes
   RenderPass dogPass;
-  dogPass.init(SCR_WIDTH, SCR_HEIGHT, "shaders/dog.frag");
+  dogPass.init(SCR_WIDTH, SCR_HEIGHT,
+               std::string(SOURCE_DIR) + "/shaders/dog.frag");
 
   // Display pass (simple passthrough shader)
-  ShaderProgram displayShader("shaders/fullscreen_quad.vert",
-                              "shaders/display.frag");
+  ShaderProgram displayShader(
+      std::string(SOURCE_DIR) + "/shaders/fullscreen_quad.vert",
+      std::string(SOURCE_DIR) + "/shaders/display.frag");
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
