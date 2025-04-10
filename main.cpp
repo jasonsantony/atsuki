@@ -104,10 +104,12 @@ int main(int argc, char **argv) {
   cv::resize(inputImage, inputImage, cv::Size(SCR_WIDTH, SCR_HEIGHT));
   GLuint inputTex = loadTextureFromImage(inputImage);
 
-  // Create render passes
+  // TODO: Create render passes
+  /*
   RenderPass dogPass;
   dogPass.init(SCR_WIDTH, SCR_HEIGHT,
                std::string(SOURCE_DIR) + "/shaders/dog.frag");
+  */
 
   // Display pass (simple passthrough shader)
   ShaderProgram displayShader(
@@ -117,18 +119,16 @@ int main(int argc, char **argv) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    // Pass: DoG on input image
-    dogPass.run(inputTex, quadVAO);
-
-    // Final pass: draw to screen
+    // Final pass: draw input image directly to screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glClear(GL_COLOR_BUFFER_BIT);
 
     displayShader.reloadIfChanged();
     glUseProgram(displayShader.id);
+
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, dogPass.texture);
+    glBindTexture(GL_TEXTURE_2D, inputTex);
     glUniform1i(glGetUniformLocation(displayShader.id, "image"), 0);
 
     glBindVertexArray(quadVAO);
