@@ -76,6 +76,35 @@ void RenderPass::run(GLuint inputTex, GLuint vao) {
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
+// With uniforms
+void RenderPass::run(GLuint inputTex, GLuint vao,
+                     std::function<void(GLuint)> setUniforms) {
+  this->shader->reloadIfChanged();
+  glBindFramebuffer(GL_FRAMEBUFFER, this->fbo);
+  glViewport(0, 0, this->width, this->height);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glUseProgram(this->shader->id);
+
+  // Default input texture
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, inputTex);
+  glUniform1i(glGetUniformLocation(this->shader->id, "image"), 0);
+
+  // Optional: automatic texelSize
+  GLint texelSizeLoc = glGetUniformLocation(this->shader->id, "texelSize");
+  if (texelSizeLoc != -1) {
+    glUniform2f(texelSizeLoc, 1.0f / this->width, 1.0f / this->height);
+  }
+
+  // Call user-supplied uniform setter
+  if (setUniforms) {
+    setUniforms(this->shader->id);
+  }
+
+  glBindVertexArray(vao);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
+
 RenderPass::~RenderPass() {
   glDeleteTextures(1, &texture);
   glDeleteFramebuffers(1, &fbo);

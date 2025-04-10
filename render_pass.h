@@ -13,5 +13,7 @@ struct RenderPass {
   void init(int w, int h, const std::string &vertPath,
             const std::string &fragPath);
   void run(GLuint inputTex, GLuint vao);
+  void run(GLuint inputTex, GLuint vao,
+           std::function<void(GLuint)> setUniforms);
   ~RenderPass(); // Automatically clean up GL resources on destruction
 };

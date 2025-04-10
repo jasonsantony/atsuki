@@ -102,10 +102,14 @@ int main(int argc, char **argv) {
   GLuint quadVAO = createFullscreenQuadVAO();
   GLuint inputTex = loadTextureFromImage(inputImage);
 
-  // Setup Sobel render pass
-  RenderPass sobelPass;
-  sobelPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
-                 shaderDir + "/sobel.frag");
+  // Setup render passes
+  RenderPass luminancePass, downscalePass, blurDoGPass, sobelPass;
+  luminancePass.init(renderWidth, renderHeight,
+                     shaderDir + "/fullscreen_quad.vert",
+                     shaderDir + "/luminance.frag");
+  downscalePass.init(renderWidth, renderHeight,
+                     shaderDir + "/fullscreen_quad.vert",
+                     shaderDir + "/downscale.frag");
 
   // Display pass (simple passthrough shader)
   ShaderProgram displayShader(shaderDir + "/fullscreen_quad.vert",
@@ -114,10 +118,16 @@ int main(int argc, char **argv) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    // Pass 1: Sobel filter
-    sobelPass.run(inputTex, quadVAO);
+    // ---- PASS 1: Luminance (full-res grayscale) ----
+    luminancePass.run(inputTex, quadVAO); // output → luminancePass.texture
 
-    // Final pass: upscale to window
+    // ---- PASS 2: Downscale ----
+    downscalePass.run(inputTex, quadVAO, [&](GLuint shaderID) {
+      glUniform2f(glGetUniformLocation(shaderID, "downscaleFactor"), 8.0f,
+                  8.0f);
+    });
+
+    // ---- Final Display ----
     int fbWidth, fbHeight;
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -126,9 +136,11 @@ int main(int argc, char **argv) {
 
     displayShader.reloadIfChanged();
     glUseProgram(displayShader.id);
+
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, sobelPass.texture);
+    glBindTexture(GL_TEXTURE_2D, downscalePass.texture);
     glUniform1i(glGetUniformLocation(displayShader.id, "image"), 0);
+
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
