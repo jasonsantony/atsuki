@@ -8,9 +8,14 @@
 
 // Fullscreen quad vertices (position + texcoord)
 float quadVertices[] = {
-    // positions   // texcoords
-    -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, -1.0f, 0.0f, 0.0f,
-    1.0f,  1.0f, 1.0f, 1.0f, 1.0f,  -1.0f, 1.0f, 0.0f,
+    // positions  // texcoords
+    -1.0f, 1.0f,  0.0f, 1.0f,
+
+    -1.0f, -1.0f, 0.0f, 0.0f,
+
+    1.0f,  1.0f,  1.0f, 1.0f,
+
+    1.0f,  -1.0f, 1.0f, 0.0f,
 };
 
 GLuint createFullscreenQuadVAO() {
@@ -103,13 +108,13 @@ int main(int argc, char **argv) {
   GLuint inputTex = loadTextureFromImage(inputImage);
 
   // Setup render passes
-  RenderPass luminancePass, downscalePass, blurDoGPass, sobelPass;
-  luminancePass.init(renderWidth, renderHeight,
-                     shaderDir + "/fullscreen_quad.vert",
-                     shaderDir + "/luminance.frag");
-  downscalePass.init(renderWidth, renderHeight,
-                     shaderDir + "/fullscreen_quad.vert",
-                     shaderDir + "/downscale.frag");
+  RenderPass edgePass, histPass, asciiPass;
+  edgePass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
+                shaderDir + "/edge_detect.frag");
+  histPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
+                shaderDir + "/histogram.frag");
+  asciiPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
+                 shaderDir + "/ascii_render.frag");
 
   // Display pass (simple passthrough shader)
   ShaderProgram displayShader(shaderDir + "/fullscreen_quad.vert",
@@ -118,16 +123,19 @@ int main(int argc, char **argv) {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
 
-    // ---- PASS 1: Luminance (full-res grayscale) ----
-    luminancePass.run(inputTex, quadVAO); // output → luminancePass.texture
-
-    // ---- PASS 2: Downscale ----
-    downscalePass.run(inputTex, quadVAO, [&](GLuint shaderID) {
-      glUniform2f(glGetUniformLocation(shaderID, "downscaleFactor"), 8.0f,
-                  8.0f);
+    edgePass.run(inputTex, quadVAO, [&](GLuint program) {
+      glUniform1f(glGetUniformLocation(program, "u_threshold"), 0.2f);
+      glUniform2f(glGetUniformLocation(program, "u_textureSize"),
+                  (float)renderWidth, (float)renderHeight);
     });
 
-    // ---- Final Display ----
+    histPass.run(edgePass.texture, quadVAO, [&](GLuint program) {
+      glUniform2f(glGetUniformLocation(program, "u_gridCellDimensions"), 40.0f,
+                  25.0f); // example: 40 cols, 25 rows
+      glUniform1i(glGetUniformLocation(program, "u_threshold"), 10);
+    });
+
+    // Final display
     int fbWidth, fbHeight;
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -138,7 +146,7 @@ int main(int argc, char **argv) {
     glUseProgram(displayShader.id);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, downscalePass.texture);
+    glBindTexture(GL_TEXTURE_2D, histPass.texture);
     glUniform1i(glGetUniformLocation(displayShader.id, "image"), 0);
 
     glBindVertexArray(quadVAO);

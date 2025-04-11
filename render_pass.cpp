@@ -20,8 +20,13 @@ GLuint createRenderTexture(int width, int height) {
       GL_FLOAT,      // Type of pixel data: float per component
       nullptr        // No initial data (allocate only)
   );
-  // Linear interpolation for downsampling (we don't need upsampling)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  // Prevent clamping to 0 at edges and allow proper stretching
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  // Linear interpolation
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
   return tex;
 }
 

@@ -1,10 +1,11 @@
 #version 330 core
-in vec2 TexCoords;
-out vec4 FragColor;
 
-uniform sampler2D image;
+in vec2 v_texCoord;
+out vec4 fragColor;
+
+uniform sampler2D u_texture;
 
 void main() {
-    float lum = texture(image, TexCoords).r;
-    FragColor = vec4(vec3(lum), 1.0); // should be 0 or 1 in your case
+    vec3 color = texture(u_texture, v_texCoord).rgb;
+    fragColor = vec4(color, 1.0);
 }
