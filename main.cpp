@@ -81,6 +81,11 @@ int main(int argc, char **argv) {
   int renderWidth = inputImage.cols;
   int renderHeight = inputImage.rows;
 
+  int gridCols = 160; // Can play with this
+  float imageAspect = (float)renderWidth / renderHeight;
+  int gridRows =
+      static_cast<int>(gridCols / imageAspect + 0.5f); // Round to nearest
+
   if (!glfwInit()) {
     std::cerr << "Failed to initialize GLFW" << std::endl;
     return -1;
@@ -111,7 +116,7 @@ int main(int argc, char **argv) {
   RenderPass edgePass, histPass, asciiPass;
   edgePass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
                 shaderDir + "/edge_detect.frag");
-  histPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
+  histPass.init(gridCols, gridRows, shaderDir + "/fullscreen_quad.vert",
                 shaderDir + "/histogram.frag");
   asciiPass.init(renderWidth, renderHeight, shaderDir + "/fullscreen_quad.vert",
                  shaderDir + "/ascii_render.frag");
@@ -130,8 +135,8 @@ int main(int argc, char **argv) {
     });
 
     histPass.run(edgePass.texture, quadVAO, [&](GLuint program) {
-      glUniform2f(glGetUniformLocation(program, "u_gridCellDimensions"), 40.0f,
-                  25.0f); // example: 40 cols, 25 rows
+      glUniform2f(glGetUniformLocation(program, "u_gridCellDimensions"),
+                  gridCols, gridRows);
       glUniform1i(glGetUniformLocation(program, "u_threshold"), 10);
     });
 
